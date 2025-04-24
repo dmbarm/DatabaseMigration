@@ -10,101 +10,113 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 public class MigrationExecutor {
     private static final Logger logger = LoggerFactory.getLogger(MigrationExecutor.class);
 
     public void executeMigrations() {
-        MigrationParser migrationParser = new MigrationParser();
-        List<Migration> migrations = migrationParser.parseMigrations(ConfigLoader.getProperty("migration.file"));
-        MigrationHistory migrationHistory = new MigrationHistory();
-
-        if (migrations == null || migrations.isEmpty()) {
-            logger.warn("No migrations found in the XML file.");
+        List<Migration> migrations = loadMigrations();
+        if (migrations.isEmpty()) {
+            logger.warn("No migrations were found.");
             return;
         }
 
-        logger.info("Executing migrations...");
         try (Connection connection = DatabasePool.getDataSource().getConnection()) {
-            for (Migration migration : migrations) {
-                logger.info("");
-                logger.info(LoggerHelper.SEPARATOR);
-                if (migrationHistory.alreadyExecuted(migration, connection)) {
-                    logger.info("Skipping already executed migration: ID={}, Author={}", migration.getId(), migration.getAuthor());
-                    continue;
-                }
+            processMigrations(
+                    migrations,
+                    connection,
+                    new MigrationProcessor() {
+                        @Override
+                        public void process(Migration migration, Connection connection, MigrationHistory migrationHistory) {
+                            for (MigrationAction migrationAction : migration.getMigrationActions()) {
+                                migrationAction.execute(connection);
+                            }
+                            migrationHistory.storeSuccessfulMigration(migration, connection);
+                        }
 
-                logger.info("Executing migration: ID={}, Author={}", migration.getId(), migration.getAuthor());
-
-                try {
-                    for (MigrationAction migrationAction : migration.getMigrationActions()) {
-                        logger.debug(LoggerHelper.INDENT +  "   Executing action: {}", migrationAction.getClass().getSimpleName());
-                        migrationAction.execute(connection);
-                        logger.info("   ┌── Executed action: {}", migrationAction.getClass().getSimpleName());
-                    }
-                    logger.info("Migration {} executed", migration.getId());
-
-                    migrationHistory.storeSuccessfulMigration(migration, connection);
-                    connection.commit();
-                } catch (Exception e) {
-                    connection.rollback();
-                    logger.error("Migration ID={} failed: {}", migration.getId(), e.getMessage(), e);
-                    throw new RuntimeException("Migration execution failed for ID=" + migration.getId(), e);
-                }
-            }
-            logger.info("");
+                        @Override
+                        public boolean shouldProcess(Migration migration, Connection connection, MigrationHistory migrationHistory) {
+                            return !migrationHistory.alreadyExecuted(migration, connection);
+                        }
+                    },
+                    false
+            );
         } catch (SQLException e) {
-            logger.error("Database connection error: {}", e.getMessage());
             throw new RuntimeException("Database error during migration execution", e);
+        } catch (Exception e) {
+            //TODO: make custom exception
+            throw new RuntimeException("", e);
         }
-
-        logger.info("Migration execution completed.");
     }
 
     public void rollbackMigrations(int rollbackAmount) {
-        MigrationParser migrationParser = new MigrationParser();
-        List<Migration> migrations = migrationParser.parseMigrations(ConfigLoader.getProperty("migration.file"));
-        MigrationHistory migrationHistory = new MigrationHistory();
-
-        if (migrations == null || migrations.isEmpty()) {
-            logger.warn("No migrations found in the XML file.");
+        List<Migration> migrations = loadMigrations();
+        if (migrations.isEmpty()) {
+            logger.warn("No migrations were found.");
             return;
         }
 
+        int start = Math.max(0, migrations.size() - rollbackAmount);
+        List<Migration> rollBackedMigrations = migrations.subList(start, migrations.size());
+
         try (Connection connection = DatabasePool.getDataSource().getConnection()) {
-            for (int i = migrations.size() - 1; i >= migrations.size() - rollbackAmount; i--) {
-                Migration migration = migrations.get(i);
+            processMigrations(
+                    rollBackedMigrations,
+                    connection,
+                    new MigrationProcessor() {
 
-                if (!migrationHistory.alreadyExecuted(migration, connection)) {
-                    logger.info("Skipping non executed migration: ID={}, Author={}", migration.getId(), migration.getAuthor());
-                    continue;
-                }
+                        @Override
+                        public void process(Migration migration, Connection connection, MigrationHistory migrationHistory) {
+                            for (MigrationAction rollbackAction : migration.getRollbackActions()) {
+                                rollbackAction.execute(connection);
+                            }
+                            migrationHistory.deleteRolledBackMigration(migration, connection);
+                        }
 
-                logger.info("Rolling back migration: ID = {}, Author={}", migration.getId(), migration.getAuthor());
-
-                try {
-                    for (MigrationAction rollbackAction : migration.getRollbackActions()) {
-                        logger.debug(LoggerHelper.INDENT + "  Rolling back action: {}", rollbackAction.getClass().getSimpleName());
-                        rollbackAction.execute(connection);
-                        logger.info("   ┌── Successfully rolled back action: {}", rollbackAction.getClass().getSimpleName());
-                    }
-
-                    migrationHistory.deleteRolledBackMigration(migration, connection);
-                    connection.commit();
-                }
-                catch (Exception e) {
-                    connection.rollback();
-                    logger.error("Rolling back migration ID={} failed: {}", migration.getId(), e.getMessage(), e);
-                    throw new RuntimeException("Migration rollback failed for ID=" + migration.getId(), e);
-                }
-
-                logger.info("Migration rollback completed.");
-            }
+                        @Override
+                        public boolean shouldProcess(Migration migration, Connection connection, MigrationHistory migrationHistory) {
+                            return migrationHistory.alreadyExecuted(migration, connection);
+                        }
+                    },
+                    true
+            );
         } catch (SQLException e) {
-            logger.error("Database connection error: {}", e.getMessage());
             throw new RuntimeException("Database error during migration execution", e);
+        } catch (Exception e) {
+            //TODO: also making custom exceptions
+            throw new RuntimeException(e);
         }
     }
 
+    private List<Migration> loadMigrations() {
+        MigrationParser migrationParser = new MigrationParser();
+        return migrationParser.parseMigrations(ConfigLoader.getProperty("migration.file"));
+    }
+
+    private void processMigrations(
+            List<Migration> migrations,
+            Connection connection,
+            MigrationProcessor migrationProcessor,
+            boolean reverseOrder) throws Exception {
+        MigrationHistory migrationHistory = new MigrationHistory();
+        if (reverseOrder) Collections.reverse(migrations);
+
+        for (Migration migration : migrations) {
+            if (!migrationProcessor.shouldProcess(migration, connection, migrationHistory)) {
+                logger.info("Skipping migration: ID={}, Author={}", migration.getId(), migration.getAuthor());
+                continue;
+            }
+
+            try {
+                migrationProcessor.process(migration, connection, migrationHistory);
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                logger.error("Processing failed for migration: ID={}: {}", migration.getId(), e.getMessage(), e);
+                throw new RuntimeException("Migration processing failed for ID=" + migration.getId(), e);
+            }
+        }
+    }
 }
