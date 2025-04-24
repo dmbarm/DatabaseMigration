@@ -2,9 +2,10 @@ package org.migrationtool.main;
 
 import org.migrationtool.actions.MigrationAction;
 import org.migrationtool.database.DatabasePool;
+import org.migrationtool.exceptions.MigrationExecutionException;
+import org.migrationtool.exceptions.MigrationRollbackException;
 import org.migrationtool.parsers.MigrationParser;
 import org.migrationtool.utils.ConfigLoader;
-import org.migrationtool.utils.LoggerHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +47,8 @@ public class MigrationExecutor {
         } catch (SQLException e) {
             throw new RuntimeException("Database error during migration execution", e);
         } catch (Exception e) {
-            //TODO: make custom exception
-            throw new RuntimeException("", e);
+            logger.error("Unexpected error during migration execution: {}", e.getMessage(), e);
+            throw new MigrationExecutionException("Unexpected error during migration execution", e);
         }
     }
 
@@ -85,8 +86,8 @@ public class MigrationExecutor {
         } catch (SQLException e) {
             throw new RuntimeException("Database error during migration execution", e);
         } catch (Exception e) {
-            //TODO: also making custom exceptions
-            throw new RuntimeException(e);
+            logger.error("Unexpected error during migration rollback: {}", e.getMessage(), e);
+            throw new MigrationRollbackException("Unexpected error during migration rollback", e);
         }
     }
 
@@ -114,8 +115,8 @@ public class MigrationExecutor {
                 connection.commit();
             } catch (Exception e) {
                 connection.rollback();
-                logger.error("Processing failed for migration: ID={}: {}", migration.getId(), e.getMessage(), e);
-                throw new RuntimeException("Migration processing failed for ID=" + migration.getId(), e);
+                logger.error("Migration failed: ID={}, Author={}, Error={}", migration.getId(), migration.getAuthor(), e.getMessage(), e);
+                throw new RuntimeException("Migration processing failed for ID=" + migration.getId() + ", Author=" + migration.getAuthor(), e);
             }
         }
     }
