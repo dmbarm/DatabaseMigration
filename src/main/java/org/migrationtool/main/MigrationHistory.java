@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -38,17 +39,19 @@ public class MigrationHistory {
     }
 
     public void storeSuccessfulMigration(Migration migration, Connection connection) {
-        StringBuilder query = new StringBuilder("INSERT INTO Migration_Table (migrationID, author, filename, checksum) VALUES ('");
-        query.append(migration.getId()).append("', '");
-        query.append(migration.getAuthor()).append("', '");
-        query.append(ConfigLoader.getProperty("migration.file")).append("', '");
-        query.append(migration.getChecksum()).append("')");
+        String sql = "INSERT INTO Migration_Table (migrationID, author, filename, checksum) VALUES (?, ?, ?, ?)";
 
         logger.info("Storing migration ID={}, Author={}", migration.getId(), migration.getAuthor());
 
-        try {
-            logger.debug(LoggerHelper.INDENT + "   SQL Query: {}", query);
-            connection.createStatement().execute(query.toString());
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, String.valueOf(migration.getId()));
+            statement.setString(2, migration.getAuthor());
+            statement.setString(3, ConfigLoader.getProperty("migration.file"));
+            statement.setString(4, migration.getChecksum());
+
+            logger.debug(LoggerHelper.INDENT + "   Executing PreparedStatement for migration ID={}", migration.getId());
+
+            statement.executeUpdate();
 
             logger.info("Migration ID={} stored.", migration.getId());
         } catch (SQLException e) {
