@@ -17,7 +17,7 @@ public class Main {
             logger.info("Migration history table initialized successfully.");
 
 
-            //todo: split these two parts
+            // TODO: split these two parts
             logger.info(LoggerHelper.SECTION_START);
             logger.info("     STARTING MIGRATION EXECUTION");
             logger.info(LoggerHelper.SECTION_START);

@@ -1,10 +1,12 @@
 package org.migrationtool.utils;
 
 public class TagNames {
-    //base tags
+    private TagNames() {}
+
+    // Base tags
     public static final String MIGRATION = "migration";
 
-    //action tags
+    // Action tags
     public static final String CREATE_TABLE = "createTable";
     public static final String ADD_COLUMN = "addColumn";
     public static final String ADD_CONSTRAINT = "addConstraint";
@@ -18,7 +20,7 @@ public class TagNames {
     public static final String DROP_INDEX = "dropIndex";
     public static final String ROLLBACK = "rollback";
 
-    //model tags
+    // Model tags
     public static final String COLUMN = "column";
     public static final String CONSTRAINT = "constraint";
     public static final String INDEX = "index";

@@ -35,7 +35,7 @@ public class AddConstraintAction implements MigrationAction {
 
     @Override
     public String generateChecksum() {
-        //creating special signature
+        // Creating special signature
         String string = "AddConstraint:" + constraint.getTableName() + "|" + constraint;
         return ChecksumGenerator.generateWithSHA256(string);
     }

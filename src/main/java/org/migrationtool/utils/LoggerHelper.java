@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 public class LoggerHelper {
     private static final Logger logger = LoggerFactory.getLogger(LoggerHelper.class);
 
-    private LoggerHelper() {} // Prevent instantiation
+    private LoggerHelper() {}
 
     public static final String SEPARATOR = "────────────────────────────────────────────────────────────────────────────────────";
     public static final String INDENT = "└── ";

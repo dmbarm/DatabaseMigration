@@ -14,14 +14,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MigrationParser {
     private static final Logger logger = LoggerFactory.getLogger(MigrationParser.class);
-
-    public MigrationParser() {}
 
     public List<Migration> parseMigrations(String filePath) {
         List<Migration> migrations = new ArrayList<>();
@@ -29,11 +29,19 @@ public class MigrationParser {
         logger.info("Parsing migrations from file: {}", filePath);
 
         try {
-            Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(filePath);
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("https://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("https://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("https://xml.org/sax/features/external-parameter-entities", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(filePath);
 
             document.getDocumentElement().normalize();
 
-            //taking each single migration
+            // Taking each single migration
             NodeList migrationNodes = document.getElementsByTagName(TagNames.MIGRATION);
             logger.debug("Found {} migrations in file", migrationNodes.getLength());
 
@@ -50,7 +58,7 @@ public class MigrationParser {
         }
         catch (Exception e) {
             logger.error("Failed to parse migrations: {}", e.getMessage(), e);
-            return null;
+            return Collections.emptyList();
         }
 
         logger.info("Parsing migrations completed successfully.");
@@ -62,11 +70,11 @@ public class MigrationParser {
         String author = migrationElement.getAttribute(AttributeNames.AUTHOR);
         logger.debug("Parsing migration: ID={}, Author={}", id, author);
 
-        //list for all possible actions
+        // List for all possible actions
         List<MigrationAction> migrationActions = new ArrayList<>();
         List<MigrationAction> rollbackActions = new ArrayList<>();
 
-        //going through all actions in single migration
+        // Going through all actions in single migration
         NodeList actionNodes = migrationElement.getChildNodes();
 
         for (int j = 0; j < actionNodes.getLength(); j++) {
@@ -74,7 +82,7 @@ public class MigrationParser {
             if (actionNode.getNodeType() != Node.ELEMENT_NODE) continue;
             Element actionElement = (Element) actionNode;
 
-            //parsing rollback info(if exists)
+            // Parsing rollback info(if exists)
             if (actionElement.getTagName().equals(TagNames.ROLLBACK)) {
                 logger.debug(LoggerHelper.CONNECT_INDENT + "   Parsing rollback actions...");
                 rollbackActions.addAll(parseActions(actionElement.getChildNodes()));
@@ -249,7 +257,6 @@ public class MigrationParser {
         Constraint constraint = new Constraint();
         constraint.setTableName(tableName);
 
-        String test = constraintElement.getAttribute(AttributeNames.CONSTRAINT_TYPE).toUpperCase();
         ConstraintType type = ConstraintType.valueOf(constraintElement.getAttribute(AttributeNames.CONSTRAINT_TYPE).toUpperCase());
         constraint.setType(type);
 
@@ -262,7 +269,7 @@ public class MigrationParser {
         return constraint;
     }
 
-    //helper
+    // Helper
     private String parseStringOrDefault(Element element, String attributeName, String defaultValue) {
         if (element.hasAttribute(attributeName)) {
             return element.getAttribute(attributeName);

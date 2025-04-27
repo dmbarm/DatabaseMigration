@@ -3,13 +3,11 @@ package org.migrationtool.actions;
 import org.migrationtool.models.Column;
 import org.migrationtool.models.Constraint;
 import org.migrationtool.utils.ChecksumGenerator;
-import org.migrationtool.utils.LoggerHelper;
 import org.migrationtool.utils.SQLConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 
 public class CreateTableAction implements MigrationAction {

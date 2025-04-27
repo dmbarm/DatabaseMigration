@@ -7,8 +7,6 @@ public class Constraint {
     private String expression;
     private ConstraintType type;
 
-    public Constraint() {}
-
     @Override
     public String toString() {
         return switch (type) {
@@ -46,9 +44,6 @@ public class Constraint {
         this.columnName = columnName;
     }
 
-    public String getExpression() {
-        return expression;
-    }
     public void setExpression(String expression) {
         this.expression = expression;
     }

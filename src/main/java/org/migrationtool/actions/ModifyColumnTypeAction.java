@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 public class ModifyColumnTypeAction implements MigrationAction {
     private static final Logger logger = LoggerFactory.getLogger(ModifyColumnTypeAction.class);
@@ -31,7 +30,7 @@ public class ModifyColumnTypeAction implements MigrationAction {
 
     @Override
     public String generateChecksum() {
-        //making specific signature
+        // Making specific signature
         return ChecksumGenerator.generateWithSHA256("ModifyColumn:" + column.getTableName() + "|" + column);
     }
 }

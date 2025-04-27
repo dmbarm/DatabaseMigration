@@ -13,7 +13,9 @@ public class DatabasePool {
     private static final HikariDataSource dataSource;
 
     static {
-        logger.info("Initializing database pool with URL: {}", ConfigLoader.getProperty("database.url"));
+        if (logger.isInfoEnabled()) {
+            logger.info("Initializing database pool with URL: {}", ConfigLoader.getProperty("database.url"));
+        }
 
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(ConfigLoader.getProperty("database.url"));
@@ -25,6 +27,8 @@ public class DatabasePool {
 
         dataSource = new HikariDataSource(config);
     }
+
+    private DatabasePool() {}
 
     public static DataSource getDataSource() {
         return dataSource;

@@ -2,13 +2,11 @@ package org.migrationtool.actions;
 
 import org.migrationtool.models.Column;
 import org.migrationtool.utils.ChecksumGenerator;
-import org.migrationtool.utils.LoggerHelper;
 import org.migrationtool.utils.SQLConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 public class DropColumnAction implements MigrationAction {
     private static final Logger logger = LoggerFactory.getLogger(DropColumnAction.class);
@@ -32,7 +30,7 @@ public class DropColumnAction implements MigrationAction {
 
     @Override
     public String generateChecksum() {
-        //making specific signature
+        // Making specific signature
         return ChecksumGenerator.generateWithSHA256("DropColumn:" + column.getTableName() + "|" + column);
     }
 }

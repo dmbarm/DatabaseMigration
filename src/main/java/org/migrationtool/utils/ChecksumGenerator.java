@@ -1,5 +1,6 @@
 package org.migrationtool.utils;
 
+import org.migrationtool.exceptions.ChecksumGenerationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,7 @@ public class ChecksumGenerator {
             logger.debug("Generated checksum: {}", generatedChecksum);
             return generatedChecksum;
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new ChecksumGenerationException("Failed to generate checksum with SHA-256", e);
         }
     }
 
