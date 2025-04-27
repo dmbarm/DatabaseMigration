@@ -107,4 +107,7 @@ public class MigrationExecutor {
         }
     }
 
+    public void printStatus() {
+        //TODO: make status printing
+    }
 }
