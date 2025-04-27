@@ -5,6 +5,7 @@ import org.migrationtool.database.DatabasePool;
 import org.migrationtool.exceptions.MigrationExecutionException;
 import org.migrationtool.exceptions.MigrationProcessingException;
 import org.migrationtool.exceptions.MigrationRollbackException;
+import org.migrationtool.exceptions.MigrationStatusException;
 import org.migrationtool.parsers.MigrationParser;
 import org.migrationtool.utils.ConfigLoader;
 import org.slf4j.Logger;
@@ -18,10 +19,12 @@ import java.util.List;
 public class MigrationExecutor {
     private static final Logger logger = LoggerFactory.getLogger(MigrationExecutor.class);
 
+    private static final String NO_MIGRATIONS_WARNING_MESSAGE = "No migrations were found.";
+
     public void executeMigrations() {
         List<Migration> migrations = loadMigrations();
         if (migrations.isEmpty()) {
-            logger.warn("No migrations were found.");
+            logger.warn(NO_MIGRATIONS_WARNING_MESSAGE);
             return;
         }
 
@@ -55,7 +58,7 @@ public class MigrationExecutor {
     public void rollbackMigrations(int rollbackAmount) {
         List<Migration> migrations = loadMigrations();
         if (migrations.isEmpty()) {
-            logger.warn("No migrations were found.");
+            logger.warn(NO_MIGRATIONS_WARNING_MESSAGE);
             return;
         }
 
@@ -126,7 +129,7 @@ public class MigrationExecutor {
     public void printStatus() {
         List<Migration> migrations = loadMigrations();
         if (migrations.isEmpty()) {
-            logger.warn("No migrations were found.");
+            logger.warn(NO_MIGRATIONS_WARNING_MESSAGE);
             return;
         }
 
@@ -148,8 +151,7 @@ public class MigrationExecutor {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database connection error: {}", e.getMessage());
-            throw new RuntimeException("Database error during migration execution", e);
+            throw new MigrationStatusException("Database error during migration execution", e);
         }
     }
 }
