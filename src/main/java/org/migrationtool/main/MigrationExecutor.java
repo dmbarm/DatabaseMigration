@@ -99,7 +99,7 @@ public class MigrationExecutor {
             List<Migration> migrations,
             Connection connection,
             MigrationProcessor migrationProcessor,
-            boolean reverseOrder) throws Exception {
+            boolean reverseOrder) throws MigrationProcessingException, SQLException {
         MigrationHistory migrationHistory = new MigrationHistory();
         if (reverseOrder) Collections.reverse(migrations);
 
@@ -112,9 +112,13 @@ public class MigrationExecutor {
             try {
                 migrationProcessor.process(migration, connection, migrationHistory);
                 connection.commit();
-            } catch (Exception e) {
+            } catch (MigrationProcessingException e) {
                 connection.rollback();
                 throw new MigrationProcessingException("Migration processing failed for ID=" + migration.getId() + ", Author=" + migration.getAuthor(), e);
+            } catch (SQLException e) {
+                throw new MigrationProcessingException("Database error during migration execution", e);
+            } catch (Exception e) {
+                throw new MigrationExecutionException("Unexpected error during migration execution", e);
             }
         }
     }
