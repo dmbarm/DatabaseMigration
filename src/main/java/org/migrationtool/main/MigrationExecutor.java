@@ -122,4 +122,34 @@ public class MigrationExecutor {
             }
         }
     }
+  
+    public void printStatus() {
+        List<Migration> migrations = loadMigrations();
+        if (migrations.isEmpty()) {
+            logger.warn("No migrations were found.");
+            return;
+        }
+
+        try (Connection connection = DatabasePool.getDataSource().getConnection()) {
+            MigrationHistory migrationHistory = new MigrationHistory();
+
+            logger.info("Applied migrations:");
+            for (Migration migration : migrations) {
+                if (migrationHistory.alreadyExecuted(migration, connection)) {
+                    logger.info(" - ID={}, Author={}", migration.getId(), migration.getAuthor());
+                }
+            }
+
+            logger.info("");
+            logger.info("Pending migrations:");
+            for (Migration migration : migrations) {
+                if (!migrationHistory.alreadyExecuted(migration, connection)) {
+                    logger.info(" - ID={}, Author={}", migration.getId(), migration.getAuthor());
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database connection error: {}", e.getMessage());
+            throw new RuntimeException("Database error during migration execution", e);
+        }
+    }
 }

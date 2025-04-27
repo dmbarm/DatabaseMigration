@@ -1,47 +1,38 @@
 package org.migrationtool.main;
 
 import org.migrationtool.database.DatabasePool;
-import org.migrationtool.utils.LoggerHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.migrationtool.main.commands.Migrate;
+import org.migrationtool.main.commands.Rollback;
+import org.migrationtool.main.commands.Status;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.HelpCommand;
+import picocli.CommandLine.Model.CommandSpec;
 
-public class Main {
-    private static final Logger logger = LoggerFactory.getLogger(Main.class);
+@Command(
+    name = "migration-tool",
+    mixinStandardHelpOptions = true,
+    version = "1.0",
+    description = "Database Migration Tool",
+    subcommands = {
+        Migrate.class,
+        Rollback.class,
+        Status.class,
+        HelpCommand.class
+    }
+)
+public class Main implements Runnable {
+    @CommandLine.Spec
+    private CommandSpec spec;
 
     public static void main(String[] args) {
-        logger.info("Starting MigrationTool...");
-
-        try {
-            logger.info("Initializing migration history table...");
-            MigrationTableInitializer.initialize();
-            logger.info("Migration history table initialized successfully.");
-
-
-            // TODO: split these two parts
-            logger.info(LoggerHelper.SECTION_START);
-            logger.info("     STARTING MIGRATION EXECUTION");
-            logger.info(LoggerHelper.SECTION_START);
-            logger.info("");
-            new MigrationExecutor().executeMigrations();
-
-/*            logger.info(LoggerHelper.SECTION_START);
-            logger.info("     STARTING ROLLBACK EXECUTION");
-            logger.info(LoggerHelper.SECTION_START);
-            logger.info("");
-            new MigrationExecutor().rollbackMigrations(12);*/
-
-
-            logger.info("");
-            logger.info(LoggerHelper.SECTION_START);
-            logger.info("    EXECUTION COMPLETED SUCCESSFULLY");
-            logger.info(LoggerHelper.SECTION_START);
-        } catch (Exception e) {
-            logger.error("MigrationTool encountered a fatal error: {}", e.getMessage(), e);
-            System.exit(1);
-        }
-
+        int exitCode = new CommandLine(Main.class).execute(args);
         DatabasePool.close();
-        logger.info("");
-        logger.info("MigrationTool finished execution.");
+        System.exit(exitCode);
+    }
+
+    @Override
+    public void run() {
+        spec.commandLine().usage(System.out);
     }
 }
