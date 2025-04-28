@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 
 public class DropIndexAction implements MigrationAction {
-    private final static Logger logger = LoggerFactory.getLogger(DropIndexAction.class);
+    private static final Logger logger = LoggerFactory.getLogger(DropIndexAction.class);
     private final Index index;
 
     public DropIndexAction(Index index) {

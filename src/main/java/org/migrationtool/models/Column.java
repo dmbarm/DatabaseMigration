@@ -11,8 +11,6 @@ public class Column {
     private String newName;
     private final List<Constraint> constraintsList = new ArrayList<>();
 
-    public Column() {}
-
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();

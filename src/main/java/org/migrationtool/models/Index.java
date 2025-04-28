@@ -9,8 +9,6 @@ public class Index {
     private final List<String> columns = new ArrayList<>();
     private boolean unique;
 
-    public Index() {}
-
     @Override
     public String toString() {
         return (unique ? "UNIQUE " : "") + "INDEX on columns (" + String.join(", ", columns) + ")";

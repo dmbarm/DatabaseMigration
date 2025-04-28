@@ -1,5 +1,6 @@
 package org.migrationtool.utils;
 
+import org.migrationtool.exceptions.ConfigLoadException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,19 +15,15 @@ public class ConfigLoader {
     private ConfigLoader() {}
 
     static {
-        logger.info("Initializing ConfigLoader: Loading configuration properties...");
-
         try (InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream("database.properties")) {
             if (input == null) {
-                logger.error("Configuration file 'database.properties' not found in resources!");
-                throw new IOException("Cannot find database.properties");
+                throw new ConfigLoadException("Configuration file 'database.properties' not found in resources!");
             }
 
             properties.load(input);
             logger.info("Configuration file loaded successfully.");
         } catch (IOException e) {
-            logger.error("Failed to load configuration file: {}", e.getMessage(), e);
-            throw new RuntimeException("Error loading configuration", e);
+            throw new ConfigLoadException("Error loading configuration: " + e.getMessage(), e);
         }
     }
 
